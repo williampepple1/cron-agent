@@ -1,6 +1,6 @@
 import os
 import datetime
-from openai import OpenAI
+from smolagents import CodeAgent, OpenAIServerModel
 
 def execute_task():
     try:
@@ -20,22 +20,24 @@ def execute_task():
     if not api_key:
         print("Error: DEEPSEEK_API_KEY is not set.")
         return
-        
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://api.deepseek.com"
+
+    # Use OpenAIServerModel to connect to DeepSeek API
+    model = OpenAIServerModel(
+        model_id="deepseek-v4-flash",
+        api_base="https://api.deepseek.com",
+        api_key=api_key
+    )
+
+    # CodeAgent with access to the requests library
+    agent = CodeAgent(
+        tools=[],
+        model=model,
+        additional_authorized_imports=["requests", "datetime", "json"]
     )
 
     try:
-        response = client.chat.completions.create(
-            model="deepseek-v4-flash",
-            messages=[
-                {"role": "system", "content": "You are an autonomous AI agent running as a cron job. Execute the user's daily tasks. Output the result of your execution."},
-                {"role": "user", "content": f"Here is my task for today:\n\n{task_content}"}
-            ]
-        )
-        # Fix model name just in case
-        result = response.choices[0].message.content
+        # We tell the agent to execute the instructions
+        result = agent.run(f"Execute the following instructions. If you need to make web requests, use the `requests` library in python.\n\nInstructions:\n{task_content}")
         print(f"Task executed successfully. Result:\n{result}")
         
         with open("agent_log.txt", "a") as f:
@@ -45,7 +47,6 @@ def execute_task():
         print(f"Error executing task: {e}")
 
 if __name__ == "__main__":
-    # Allow manual testing
     from dotenv import load_dotenv
     load_dotenv()
     execute_task()

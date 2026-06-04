@@ -4,3 +4,4 @@ apscheduler
 requests
 openai
 python-dotenv
+smolagents
